@@ -8,14 +8,16 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 
+# Reuters の公式RSS廃止のため Google News 経由で取得
+BASE = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=site:reuters.com"
 CATEGORIES = [
-    ("Top News",   "https://feeds.reuters.com/reuters/topNews"),
-    ("World",      "https://feeds.reuters.com/Reuters/worldNews"),
-    ("Business",   "https://feeds.reuters.com/reuters/businessNews"),
-    ("Technology", "https://feeds.reuters.com/reuters/technologyNews"),
-    ("Science",    "https://feeds.reuters.com/reuters/scienceNews"),
-    ("Health",     "https://feeds.reuters.com/reuters/healthNews"),
-    ("Sports",     "https://feeds.reuters.com/reuters/sportsNews"),
+    ("Top News",   f"{BASE}"),
+    ("World",      f"{BASE}+world"),
+    ("Business",   f"{BASE}+business"),
+    ("Technology", f"{BASE}+technology"),
+    ("Science",    f"{BASE}+science"),
+    ("Health",     f"{BASE}+health"),
+    ("Sports",     f"{BASE}+sports"),
 ]
 
 SENDER    = os.environ["GMAIL_USER"]
@@ -95,7 +97,7 @@ def build_html(sections):
     {rows}
     <tr>
       <td colspan="2" style="padding:14px 16px;font-size:12px;color:#aaa;text-align:center;">
-        Source: Reuters RSS / 自動配信（日本語訳は機械翻訳）
+        Source: Reuters via Google News RSS / 自動配信（日本語訳は機械翻訳）
       </td>
     </tr>
   </table>
@@ -122,7 +124,7 @@ def main():
             sections.append((cat_name, items))
 
     if not sections:
-        print("ニュース取得なし（RSS変更の可能性）")
+        print("ニュース取得なし")
         return
 
     today   = datetime.now().strftime("%Y/%m/%d")
