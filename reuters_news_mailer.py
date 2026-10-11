@@ -2,7 +2,6 @@ import feedparser
 import smtplib
 import os
 import json
-import re
 import urllib.request
 import urllib.parse
 from email.mime.multipart import MIMEMultipart
@@ -24,49 +23,32 @@ CATEGORIES = [
 SENDER    = os.environ["GMAIL_USER"]
 PASSWORD  = os.environ["GMAIL_PASSWORD"]
 RECIPIENT = os.environ["RECIPIENT_EMAIL"]
+DEEPL_KEY = os.environ["DEEPL_API_KEY"]
 TOP_N     = 5
 
-
-_UA_PC     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-_UA_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+_UA_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 
 def translate(text):
     if not text:
         return ""
-    encoded = urllib.parse.quote(text[:500])
-
-    # 第1候補: translate.googleapis.com（JSON API）
     try:
-        url = (
-            "https://translate.googleapis.com/translate_a/single"
-            f"?client=gtx&sl=en&tl=ja&dt=t&q={encoded}"
+        payload = urllib.parse.urlencode({
+            "text": text[:500],
+            "target_lang": "JA",
+            "source_lang": "EN",
+        }).encode()
+        req = urllib.request.Request(
+            "https://api-free.deepl.com/v2/translate",
+            data=payload,
+            headers={"Authorization": f"DeepL-Auth-Key {DEEPL_KEY}"},
         )
-        req = urllib.request.Request(url, headers={"User-Agent": _UA_PC})
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode())
-        result = "".join(item[0] for item in data[0] if item[0])
-        if result:
-            return result
+        return data["translations"][0]["text"]
     except Exception as e:
-        print(f"  translate primary failed: {e}")
-
-    # 第2候補: translate.google.com/m（モバイル版スクレイピング）
-    try:
-        url = f"https://translate.google.com/m?q={encoded}&tl=ja&sl=en"
-        req = urllib.request.Request(url, headers={"User-Agent": _UA_MOBILE})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            html = resp.read().decode("utf-8", errors="ignore")
-        match = re.search(r'class="result-container">(.*?)</div>', html)
-        if match:
-            raw = match.group(1)
-            raw = raw.replace("&#39;", "'").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"')
-            if raw:
-                return raw
-    except Exception as e:
-        print(f"  translate fallback failed: {e}")
-
-    return text  # 翻訳不可なら原文をそのまま返す
+        print(f"  translate failed: {e}")
+        return text  # 失敗時は原文を返す
 
 
 def fetch_news(url, n=TOP_N):
