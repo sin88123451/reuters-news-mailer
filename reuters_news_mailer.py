@@ -2,6 +2,7 @@ import feedparser
 import smtplib
 import os
 import json
+import re
 import urllib.request
 import urllib.parse
 from email.mime.multipart import MIMEMultipart
@@ -26,25 +27,51 @@ RECIPIENT = os.environ["RECIPIENT_EMAIL"]
 TOP_N     = 5
 
 
+_UA_PC     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+_UA_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+
+
 def translate(text):
     if not text:
         return ""
+    encoded = urllib.parse.quote(text[:500])
+
+    # 第1候補: translate.googleapis.com（JSON API）
     try:
-        encoded = urllib.parse.quote(text[:500])
         url = (
             "https://translate.googleapis.com/translate_a/single"
             f"?client=gtx&sl=en&tl=ja&dt=t&q={encoded}"
         )
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": _UA_PC})
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode())
-        return "".join(item[0] for item in data[0] if item[0])
-    except Exception:
-        return ""
+        result = "".join(item[0] for item in data[0] if item[0])
+        if result:
+            return result
+    except Exception as e:
+        print(f"  translate primary failed: {e}")
+
+    # 第2候補: translate.google.com/m（モバイル版スクレイピング）
+    try:
+        url = f"https://translate.google.com/m?q={encoded}&tl=ja&sl=en"
+        req = urllib.request.Request(url, headers={"User-Agent": _UA_MOBILE})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+        match = re.search(r'class="result-container">(.*?)</div>', html)
+        if match:
+            raw = match.group(1)
+            raw = raw.replace("&#39;", "'").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"')
+            if raw:
+                return raw
+    except Exception as e:
+        print(f"  translate fallback failed: {e}")
+
+    return text  # 翻訳不可なら原文をそのまま返す
 
 
 def fetch_news(url, n=TOP_N):
-    feed = feedparser.parse(url)
+    feed = feedparser.parse(url, request_headers={"User-Agent": _UA_PC})
+    print(f"  fetch {url[:80]} → {len(feed.entries)} 件")
     items = []
     for entry in feed.entries[:n]:
         title   = entry.get("title", "")
