@@ -56,14 +56,11 @@ def fetch_news(url, n=TOP_N):
     print(f"  fetch {url[:80]} → {len(feed.entries)} 件")
     items = []
     for entry in feed.entries[:n]:
-        title   = entry.get("title", "")
-        summary = entry.get("summary", "")
+        title = entry.get("title", "")
         items.append({
-            "title":      title,
-            "summary":    summary,
-            "title_ja":   translate(title),
-            "summary_ja": translate(summary),
-            "link":       entry.get("link", ""),
+            "title":    title,
+            "title_ja": translate(title),
+            "link":     entry.get("link", ""),
         })
     return items
 
@@ -84,9 +81,7 @@ def build_html(sections):
           <td style="padding:10px 16px;font-size:14px;vertical-align:top;width:30px;color:#888;">{i}.</td>
           <td style="padding:10px 16px;font-size:14px;vertical-align:top;">
             <a href="{it['link']}" style="color:#f26522;font-weight:bold;text-decoration:none;">{it['title']}</a>
-            <div style="color:#003f5c;font-size:13px;margin-top:2px;font-weight:bold;">{it['title_ja']}</div>
-            <div style="color:#555;margin-top:6px;font-size:13px;">{it['summary']}</div>
-            <div style="color:#777;margin-top:2px;font-size:12px;font-style:italic;">{it['summary_ja']}</div>
+            <div style="color:#003f5c;font-size:13px;margin-top:4px;font-weight:bold;">{it['title_ja']}</div>
           </td>
         </tr>"""
 
