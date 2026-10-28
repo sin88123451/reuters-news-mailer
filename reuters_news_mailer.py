@@ -20,10 +20,10 @@ CATEGORIES = [
     ("Sports",     f"{BASE}+sports"),
 ]
 
-SENDER    = os.environ["GMAIL_USER"]
-PASSWORD  = os.environ["GMAIL_PASSWORD"]
-RECIPIENT = os.environ["RECIPIENT_EMAIL"]
-DEEPL_KEY = os.environ["DEEPL_API_KEY"]
+SENDER     = os.environ["GMAIL_USER"]
+PASSWORD   = os.environ["GMAIL_PASSWORD"]
+RECIPIENTS = [r.strip() for r in os.environ["RECIPIENT_EMAIL"].split(",") if r.strip()]
+DEEPL_KEY  = os.environ["DEEPL_API_KEY"]
 TOP_N     = 5
 
 _UA_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -113,11 +113,11 @@ def send_email(subject, html_body):
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]    = SENDER
-    msg["To"]      = RECIPIENT
+    msg["To"]      = ", ".join(RECIPIENTS)
     msg.attach(MIMEText(html_body, "html", "utf-8"))
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(SENDER, PASSWORD)
-        server.sendmail(SENDER, RECIPIENT, msg.as_string())
+        server.sendmail(SENDER, RECIPIENTS, msg.as_string())
 
 
 def main():
