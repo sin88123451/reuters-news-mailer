@@ -2,7 +2,7 @@ name: Reuters Daily News Mailer
 
 on:
   schedule:
-    - cron: "30 21 * * *"   # 毎日 21:30 UTC = 翌朝 06:30 JST
+    - cron: "23 20 * * *"   # 毎日 20:23 UTC = 翌朝 05:23 JST
   workflow_dispatch:
 
 jobs:
